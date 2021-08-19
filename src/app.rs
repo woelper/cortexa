@@ -1,23 +1,21 @@
-use eframe::{egui, epi};
+use eframe::{egui::{self, Ui}, epi};
+// use super::task;
+use super::task::Task;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))] // if we add new fields, give them default values when deserializing old state
 pub struct App {
-    // Example stuff:
-    label: String,
-
+    tasks: Vec<Task>,
     // this how you opt-out of serialization of a member
-    #[cfg_attr(feature = "persistence", serde(skip))]
-    value: f32,
+    // #[cfg_attr(feature = "persistence", serde(skip))]
+
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
-            // Example stuff:
-            label: "Yo".to_owned(),
-            value: 3.7,
+            tasks: vec![]
         }
     }
 }
@@ -49,7 +47,7 @@ impl epi::App for App {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::CtxRef, frame: &mut epi::Frame<'_>) {
-        let Self { label, value } = self;
+        let Self { tasks } = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -70,15 +68,10 @@ impl epi::App for App {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             ui.heading("Side Panel");
 
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(label);
-            });
-
-            ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                *value += 1.0;
+            if ui.button("new task").clicked() {
+                tasks.push(Task::default());
             }
+       
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
                 ui.add(
@@ -91,12 +84,12 @@ impl epi::App for App {
             // The central panel the region left after adding TopPanel's and SidePanel's
 
             ui.heading("egui template");
-            ui.hyperlink("https://github.com/emilk/egui_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/egui_template/blob/master/",
-                "Source code."
-            ));
-            egui::warn_if_debug_build(ui);
+           
+            for task in tasks {
+                draw_task(task, ui);
+            }
+
+
         });
 
         if false {
@@ -108,4 +101,10 @@ impl epi::App for App {
             });
         }
     }
+}
+
+
+fn draw_task(task: &mut Task, ui: &mut Ui) {
+    ui.text_edit_singleline(&mut task.name);
+    ui.text_edit_multiline(&mut task.description);
 }
