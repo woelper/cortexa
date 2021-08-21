@@ -1,4 +1,12 @@
-use eframe::{egui::{self, Ui}, epi};
+use crate::task::{
+    NoteContent::{Subtasks, Text},
+    SubTask,
+};
+use eframe::{
+    egui::{self, DragValue, Ui},
+    epi,
+};
+
 // use super::task;
 use super::task::Task;
 
@@ -9,14 +17,11 @@ pub struct App {
     tasks: Vec<Task>,
     // this how you opt-out of serialization of a member
     // #[cfg_attr(feature = "persistence", serde(skip))]
-
 }
 
 impl Default for App {
     fn default() -> Self {
-        Self {
-            tasks: vec![]
-        }
+        Self { tasks: vec![] }
     }
 }
 
@@ -29,13 +34,14 @@ impl epi::App for App {
     #[cfg(feature = "persistence")]
     fn setup(
         &mut self,
-        _ctx: &egui::CtxRef,
+        ctx: &egui::CtxRef,
         _frame: &mut epi::Frame<'_>,
         storage: Option<&dyn epi::Storage>,
     ) {
         if let Some(storage) = storage {
             *self = epi::get_value(storage, epi::APP_KEY).unwrap_or_default()
         }
+        ctx.set_visuals(egui::Visuals::light());
     }
 
     /// Called by the frame work to save state before shutdown.
@@ -71,7 +77,6 @@ impl epi::App for App {
             if ui.button("new task").clicked() {
                 tasks.push(Task::default());
             }
-       
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
                 ui.add(
@@ -84,12 +89,10 @@ impl epi::App for App {
             // The central panel the region left after adding TopPanel's and SidePanel's
 
             ui.heading("egui template");
-           
+
             for task in tasks {
                 draw_task(task, ui);
             }
-
-
         });
 
         if false {
@@ -103,8 +106,29 @@ impl epi::App for App {
     }
 }
 
-
 fn draw_task(task: &mut Task, ui: &mut Ui) {
-    ui.text_edit_singleline(&mut task.name);
-    ui.text_edit_multiline(&mut task.description);
+    // let l = egui::Layout::default().with_main_wrap(true);
+    ui.group(|ui| {
+        ui.text_edit_singleline(&mut task.name);
+        ui.add(DragValue::new(&mut task.priority));
+        match &mut task.description {
+            Text(t) => {
+                ui.text_edit_multiline(t);
+                if ui.button("-> tasks").clicked() {
+                    task.description = task.description.to_subtasks();
+                }
+            }
+            Subtasks(st) => {
+                for t in st {
+                    ui.horizontal(|ui| {
+                        ui.checkbox(&mut t.done, "");
+                        ui.text_edit_singleline(&mut t.description);
+                    });
+                }
+                if ui.button("-> text").clicked() {
+                    task.description = task.description.to_text( )
+                }
+            }
+        }
+    });
 }
